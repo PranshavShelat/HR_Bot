@@ -1,0 +1,6 @@
+langflow
+langgraph
+langchain-core
+langchain-google-genai
+python-dotenv
+requests

@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Local database (recreated automatically by init_db() in bot.py)
+*.db
+
+# Langflow local data / cache
+.langflow/
+langflow.db*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
