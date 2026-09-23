@@ -13,7 +13,7 @@ Employee Handbook & HR Policy
 * Paid Time Off (PTO): Employees accrue 20 days of PTO annually. Requests must be submitted at least 14 days in advance for approval.
 * Sick Leave: Employees receive 10 days of paid sick leave per year. A medical certificate is required for absences exceeding 3 consecutive days.
 * Public Holidays: The company observes national and regional holidays according to the official annual calendar distributed by HR.
-* Unpaid Leave: May be granted at management’s discretion for personal emergencies after all PTO is exhausted.
+* Unpaid Leave: May be granted at managementâ€™s discretion for personal emergencies after all PTO is exhausted.
 4. Confidentiality & Data Security
 * Protect all proprietary company information, client data, intellectual property, and internal communications.
 * Never share or forward sensitive company data to personal email accounts, unauthorized devices, or public networks.
