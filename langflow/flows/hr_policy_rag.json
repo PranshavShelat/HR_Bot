@@ -1198,7 +1198,7 @@
                 "types": [
                   "JSON"
                 ],
-                "selected": "JSON",
+                "selected": null,
                 "name": "search_results",
                 "display_name": "Search Results",
                 "method": "search_documents",
@@ -1255,7 +1255,8 @@
             },
             "tool_mode": false
           },
-          "showNode": true
+          "showNode": true,
+          "selected_output": "dataframe"
         }
       },
       {
@@ -2056,7 +2057,8 @@
             },
             "tool_mode": false
           },
-          "showNode": true
+          "showNode": true,
+          "selected_output": "text_output"
         }
       },
       {
