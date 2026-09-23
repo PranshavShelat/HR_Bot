@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-agent-1C3C3C)
-![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2?logo=googlegemini&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini-2.5_%2F_3.6_Flash-8E75B2?logo=googlegemini&logoColor=white)
 ![Langflow](https://img.shields.io/badge/Langflow-RAG-6D28D9)
 ![n8n](https://img.shields.io/badge/n8n-webhooks-EA4B71?logo=n8n&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
@@ -11,7 +11,7 @@
 An HR assistant that answers policy questions **from the handbook, not from the model's
 memory**, and carries out HR actions for the logged-in employee.
 
-A **LangGraph** agent on **Gemini 2.5 Flash** sends each message to the right tool.
+A **LangGraph** agent on **Gemini 2.5 Flash / 3.6 Flash** sends each message to the right tool.
 Policy questions go to a **RAG pipeline in Langflow**: local embeddings and FAISS find the
 relevant handbook passages, and Gemini answers from those passages only. Leave and admin
 requests read and write **SQLite**, and every action is sent to **n8n** webhooks that
@@ -224,6 +224,6 @@ HR_Bot/
 
 ## Tech stack
 
-Python 3.12 · LangGraph · LangChain · Gemini 2.5 Flash (configurable via `GEMINI_MODEL`) ·
+Python 3.12 · LangGraph · LangChain · Gemini 2.5 Flash / 3.6 Flash (set via `GEMINI_MODEL`) ·
 Langflow 1.9 · sentence-transformers (`BAAI/bge-small-en-v1.5`) · FAISS · n8n (self-hosted) ·
 Google Sheets · SQLite · Docker Compose
