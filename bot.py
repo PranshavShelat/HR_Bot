@@ -376,7 +376,8 @@ def login() -> str:
 
         until = locked_until(username)
         if until:
-            print(f"🔒 Account '{username}' is locked until {until:%H:%M}. Try again later.")
+            minutes_left = int((until - datetime.now()).total_seconds() // 60) + 1
+            print(f"🔒 Account '{username}' is locked. Try again in {minutes_left} minute(s).")
             log_to_sheet("LOGIN_BLOCKED", f"Login attempt on locked account {username}", user=username)
             exit(1)
 
