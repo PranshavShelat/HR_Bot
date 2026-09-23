@@ -1,0 +1,24 @@
+# Keep secrets, local state and unrelated folders out of the agent's build context
+.env
+.env.*
+secrets/
+*.json
+*.db
+*.sqlite*
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.vscode/
+.idea/
+docs/
+langflow/
+n8n/
+policies/
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore

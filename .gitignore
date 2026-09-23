@@ -2,7 +2,8 @@
 .env
 .env.*
 !.env.example
-secrets/
+secrets/*
+!secrets/README.md
 *service-account*.json
 *credentials*.json
 

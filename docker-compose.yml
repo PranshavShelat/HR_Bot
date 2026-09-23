@@ -1,0 +1,80 @@
+name: hr-bot
+
+# Start the backing services:   docker compose up -d --build
+# Then chat with the agent:     docker compose run --rm agent
+
+services:
+  # LangGraph agent. An interactive CLI, so it is started with `docker compose run`
+  # (the "cli" profile keeps a plain `docker compose up` from starting it without a terminal).
+  agent:
+    build: .
+    profiles: ["cli"]
+    env_file: .env
+    environment:
+      # In-network addresses override the localhost values in .env
+      DB_PATH: /data/hr_database.db
+      LANGFLOW_HOST: http://langflow:7860
+      N8N_LEAVE_WEBHOOK: http://n8n:5678/webhook/apply-leave
+      N8N_LOG_WEBHOOK: http://n8n:5678/webhook/log-action
+    volumes:
+      - hr_data:/data
+    stdin_open: true
+    tty: true
+    depends_on:
+      langflow:
+        condition: service_healthy
+      n8n:
+        condition: service_healthy
+
+  # RAG pipeline: local embeddings + FAISS retrieval + Gemini, served by Langflow.
+  langflow:
+    build: ./langflow
+    environment:
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:?set GOOGLE_API_KEY in .env}
+      LANGFLOW_API_KEY_SOURCE: env
+      LANGFLOW_API_KEY: ${LANGFLOW_API_KEY:?set LANGFLOW_API_KEY in .env}
+      LANGFLOW_AUTO_LOGIN: "false"
+      LANGFLOW_SUPERUSER: ${LANGFLOW_SUPERUSER:-admin}
+      LANGFLOW_SUPERUSER_PASSWORD: ${LANGFLOW_SUPERUSER_PASSWORD:?set LANGFLOW_SUPERUSER_PASSWORD in .env}
+      LANGFLOW_CONFIG_DIR: /app/langflow-data
+      LANGFLOW_LOAD_FLOWS_PATH: /app/flows
+      LANGFLOW_COMPONENTS_PATH: /app/custom_components
+      LANGFLOW_DO_NOT_TRACK: "true"
+    volumes:
+      - langflow_data:/app/langflow-data   # Langflow DB + persisted FAISS index
+      - ./policies:/app/policies:ro        # HR policy documents to retrieve from
+    ports:
+      - "7860:7860"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7860/health_check"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Self-hosted n8n: leave + audit-log webhooks that append rows to Google Sheets.
+  n8n:
+    image: n8nio/n8n:2.40.5
+    entrypoint: ["/opt/hr-bot/entrypoint.sh"]
+    environment:
+      GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID:-}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"   # workflows read GOOGLE_SHEET_ID via $env
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_SECURE_COOKIE: "false"              # UI served over plain http on localhost
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/opt/hr-bot:ro
+      - ./secrets:/secrets:ro                 # google-service-account.json (optional)
+    ports:
+      - "5678:5678"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5678/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  hr_data:
+  langflow_data:
+  n8n_data:

@@ -10,5 +10,9 @@ ENV HF_HOME=/app/hf-cache
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
 ENV HF_HUB_OFFLINE=1
 
+# Langflow DB and the FAISS index live here (a named volume in compose); creating it
+# in the image gives a fresh volume the right owner.
+RUN mkdir -p /app/langflow-data
+
 COPY --chown=1000:0 components /app/custom_components
 COPY --chown=1000:0 flows /app/flows
