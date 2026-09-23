@@ -26,6 +26,7 @@ LANGFLOW_URL      = (
     f"{os.getenv('LANGFLOW_FLOW_ID', 'hr-policy-rag')}?stream=false"
 )
 LANGFLOW_API_KEY  = os.getenv("LANGFLOW_API_KEY")
+LANGFLOW_LLM_NODE = "GoogleGenerativeAIModel-hr008"   # Gemini node id in langflow/flows/hr_policy_rag.json
 N8N_LEAVE_WEBHOOK = os.getenv("N8N_LEAVE_WEBHOOK")
 N8N_LOG_WEBHOOK   = os.getenv("N8N_LOG_WEBHOOK")
 MAX_LOGIN_ATTEMPTS = 3
@@ -171,6 +172,8 @@ def ask_hr_policy(query: str) -> str:
         "input_type":  "chat",
         "input_value": query,
         "session_id":  "hr_agent_session",
+        # Run the flow's Gemini component on the same model as the agent
+        "tweaks": {LANGFLOW_LLM_NODE: {"model_name": GEMINI_MODEL}},
     }
     try:
         resp = requests.post(

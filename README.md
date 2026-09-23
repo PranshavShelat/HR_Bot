@@ -8,6 +8,9 @@ those passages only. Leave and admin requests use **SQLite**. Leave applications
 audit events go to self-hosted **n8n** webhooks, which append rows to **Google Sheets**.
 Everything runs with **Docker Compose**.
 
+The Gemini model is set by `GEMINI_MODEL` (default `gemini-2.5-flash`). `bot.py` uses it for the
+agent and passes it to the Langflow flow on every request, so both always run the same model.
+
 ## Architecture
 
 ```mermaid
