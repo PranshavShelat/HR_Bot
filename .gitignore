@@ -1,14 +1,21 @@
 # Secrets
 .env
+.env.*
+!.env.example
+secrets/
+*service-account*.json
+*credentials*.json
 
 # Python
 .venv/
 venv/
 __pycache__/
-*.pyc
+*.py[cod]
 
-# Local database (recreated automatically by init_db() in bot.py)
+# Local databases (recreated automatically by init_db() in bot.py)
 *.db
+*.sqlite
+*.sqlite3
 
 # Langflow local data / cache
 .langflow/

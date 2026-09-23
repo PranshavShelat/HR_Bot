@@ -14,12 +14,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 # ─────────────────────────────────────────────
 load_dotenv()
 
-DB_PATH           = "hr_database.db"
+DB_PATH           = os.getenv("DB_PATH", "hr_database.db")
+GEMINI_MODEL      = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 ADMIN_USERNAME    = "admin"
-ADMIN_PASSWORD    = os.getenv("ADMIN_PASSWORD", "1234")
+ADMIN_PASSWORD    = os.environ["ADMIN_PASSWORD"]
+# Demo accounts created on first run, as "user:password,user:password"
+SEED_USERS        = os.getenv("SEED_USERS", "")
+LANGFLOW_HOST     = os.getenv("LANGFLOW_HOST", "http://localhost:7860")
 LANGFLOW_URL      = (
-    f"{os.getenv('LANGFLOW_HOST', 'http://localhost:7860')}/api/v1/run/"
-    f"{os.getenv('LANGFLOW_FLOW_ID')}?stream=false"
+    f"{LANGFLOW_HOST}/api/v1/run/"
+    f"{os.getenv('LANGFLOW_FLOW_ID', 'hr-policy-rag')}?stream=false"
 )
 LANGFLOW_API_KEY  = os.getenv("LANGFLOW_API_KEY")
 N8N_LEAVE_WEBHOOK = os.getenv("N8N_LEAVE_WEBHOOK")
@@ -87,11 +91,10 @@ def init_db() -> None:
         ''')
         # Seed default users only if table is empty
         if conn.execute("SELECT COUNT(*) FROM employees").fetchone()[0] == 0:
-            defaults = [
-                ("pranshav", hash_password("pass123"),  15),
-                ("alice",     hash_password("alice456"), 15),
-                ("admin",     hash_password("1234"),      0),
-            ]
+            defaults = [(ADMIN_USERNAME, hash_password(ADMIN_PASSWORD), 0)]
+            for entry in filter(None, SEED_USERS.split(",")):
+                uname, pwd = entry.strip().split(":", 1)
+                defaults.append((uname.lower(), hash_password(pwd), 15))
             conn.executemany(
                 "INSERT INTO employees (username, password_hash, leave_balance) VALUES (?, ?, ?)",
                 defaults,
@@ -148,7 +151,7 @@ def ask_hr_policy(query: str) -> str:
         return answer
 
     except requests.exceptions.ConnectionError:
-        return "Error: Cannot reach Langflow at localhost:7860. Is it running?"
+        return f"Error: Cannot reach Langflow at {LANGFLOW_HOST}. Is it running?"
     except requests.exceptions.Timeout:
         return "Error: The HR policy database timed out."
     except requests.exceptions.HTTPError as e:
@@ -279,7 +282,7 @@ def list_all_employees(admin_password: str) -> str:
 TOOLS = [ask_hr_policy, apply_for_leave, check_leave_balance,
          add_new_employee, list_all_employees]
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+llm = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
 
 
 def make_system_prompt(username: str) -> str:
