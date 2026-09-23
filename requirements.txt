@@ -1,6 +1,7 @@
-langflow
-langgraph
-langchain-core
-langchain-google-genai
-python-dotenv
-requests
+# Agent (bot.py) dependencies, pinned. Tested on Python 3.12.
+# Langflow is not listed: it runs as its own container (see langflow/Dockerfile).
+langchain-core==1.6.4
+langchain-google-genai==4.4.0
+langgraph==1.2.12
+python-dotenv==1.2.3
+requests==2.34.2
