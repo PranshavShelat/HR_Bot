@@ -1,0 +1,105 @@
+{
+  "id": "hrLeaveRequest01",
+  "name": "HR Bot - Leave requests",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Receives leave applications from the HR bot's apply_for_leave tool and appends them to the Leave Requests sheet."
+  },
+  "nodes": [
+    {
+      "id": "5b0e7c52-3d1a-4f7e-9a61-7c2d8e4b1a01",
+      "webhookId": "5b0e7c52-3d1a-4f7e-9a61-7c2d8e4b1a01",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "apply-leave",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "hrLeaveRequest01-code",
+      "name": "Flatten body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// bot.py posts {username, days, reason}; add a timestamp and write one row per request\nreturn $input.all().map(item => ({\n  json: {\n    timestamp: new Date().toISOString(),\n    username: item.json.body.username,\n    days: item.json.body.days,\n    reason: item.json.body.reason,\n  },\n}));"
+      }
+    },
+    {
+      "id": "hrLeaveRequest01-sheet",
+      "name": "Append to Leave Requests",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leave Requests",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "hrSheetsServAcc1",
+          "name": "Google Sheets service account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Flatten body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten body": {
+      "main": [
+        [
+          {
+            "node": "Append to Leave Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

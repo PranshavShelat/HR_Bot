@@ -1,0 +1,105 @@
+{
+  "id": "hrAuditLogHook01",
+  "name": "HR Bot - Audit log",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Receives audit events (logins, lockouts, leave, admin actions) from the HR bot and appends them to the Audit Log sheet."
+  },
+  "nodes": [
+    {
+      "id": "5b0e7c52-3d1a-4f7e-9a61-7c2d8e4b1a02",
+      "webhookId": "5b0e7c52-3d1a-4f7e-9a61-7c2d8e4b1a02",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log-action",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "hrAuditLogHook01-code",
+      "name": "Flatten body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// bot.py posts {timestamp, action, details, user, days, reason}\nreturn $input.all().map(item => ({ json: item.json.body }));"
+      }
+    },
+    {
+      "id": "hrAuditLogHook01-sheet",
+      "name": "Append to Audit Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Audit Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "hrSheetsServAcc1",
+          "name": "Google Sheets service account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Flatten body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten body": {
+      "main": [
+        [
+          {
+            "node": "Append to Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
