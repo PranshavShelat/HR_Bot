@@ -2,10 +2,12 @@
 .env
 .env.*
 !.env.example
-secrets/*
-!secrets/README.md
+secrets/
 *service-account*.json
 *credentials*.json
+
+# Original handbook (the RAG flow reads policies/*.txt and *.md only)
+policies/*.docx
 
 # Python
 .venv/
