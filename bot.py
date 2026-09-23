@@ -2,7 +2,7 @@ import os
 import hashlib
 import requests
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
@@ -28,6 +28,8 @@ LANGFLOW_URL      = (
 LANGFLOW_API_KEY  = os.getenv("LANGFLOW_API_KEY")
 N8N_LEAVE_WEBHOOK = os.getenv("N8N_LEAVE_WEBHOOK")
 N8N_LOG_WEBHOOK   = os.getenv("N8N_LOG_WEBHOOK")
+MAX_LOGIN_ATTEMPTS = 3
+LOCKOUT_MINUTES    = int(os.getenv("LOCKOUT_MINUTES", "15"))
 
 
 # ─────────────────────────────────────────────
@@ -48,6 +50,49 @@ def authenticate(username: str, password: str) -> bool:
         return row is not None and row[0] == hash_password(password)
     except Exception:
         return False
+
+
+def locked_until(username: str) -> datetime | None:
+    """Returns when the account's lockout ends, or None if it isn't locked."""
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT locked_until FROM employees WHERE username = ?", (username,)
+        ).fetchone()
+    if row and row[0]:
+        until = datetime.fromisoformat(row[0])
+        if until > datetime.now():
+            return until
+    return None
+
+
+def record_failed_login(username: str) -> bool:
+    """Counts a failed login; locks the account on the 3rd in a row. Returns True if it just locked."""
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT failed_attempts FROM employees WHERE username = ?", (username,)
+        ).fetchone()
+        if not row:
+            return False
+        failures = row[0] + 1
+        until = None
+        if failures >= MAX_LOGIN_ATTEMPTS:
+            until = (datetime.now() + timedelta(minutes=LOCKOUT_MINUTES)).isoformat()
+            failures = 0
+        conn.execute(
+            "UPDATE employees SET failed_attempts = ?, locked_until = ? WHERE username = ?",
+            (failures, until, username),
+        )
+        conn.commit()
+    return until is not None
+
+
+def reset_failed_logins(username: str) -> None:
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE employees SET failed_attempts = 0, locked_until = NULL WHERE username = ?",
+            (username,),
+        )
+        conn.commit()
 
 
 def is_admin(username: str) -> bool:
@@ -86,9 +131,17 @@ def init_db() -> None:
                 id             INTEGER PRIMARY KEY,
                 username       TEXT UNIQUE NOT NULL,
                 password_hash  TEXT NOT NULL,
-                leave_balance  INTEGER DEFAULT 15
+                leave_balance  INTEGER DEFAULT 15,
+                failed_attempts INTEGER DEFAULT 0,
+                locked_until   TEXT
             )
         ''')
+        # Add lockout columns to databases created before they existed
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(employees)")}
+        if "failed_attempts" not in columns:
+            conn.execute("ALTER TABLE employees ADD COLUMN failed_attempts INTEGER DEFAULT 0")
+        if "locked_until" not in columns:
+            conn.execute("ALTER TABLE employees ADD COLUMN locked_until TEXT")
         # Seed default users only if table is empty
         if conn.execute("SELECT COUNT(*) FROM employees").fetchone()[0] == 0:
             defaults = [(ADMIN_USERNAME, hash_password(ADMIN_PASSWORD), 0)]
@@ -314,17 +367,28 @@ def login() -> str:
     print("═" * 50)
 
     attempts = 0
-    while attempts < 3:
+    while attempts < MAX_LOGIN_ATTEMPTS:
         username = input("\nUsername: ").strip().lower()
         password = input("Password: ").strip()
 
+        until = locked_until(username)
+        if until:
+            print(f"🔒 Account '{username}' is locked until {until:%H:%M}. Try again later.")
+            log_to_sheet("LOGIN_BLOCKED", f"Login attempt on locked account {username}", user=username)
+            exit(1)
+
         if authenticate(username, password):
+            reset_failed_logins(username)
             print(f"\n✅ Welcome, {username}!")
             log_to_sheet("LOGIN", f"{username} logged in", user=username)
             return username
         else:
             attempts += 1
-            remaining = 3 - attempts
+            if record_failed_login(username):
+                print(f"🔒 Too many failed attempts. '{username}' is locked for {LOCKOUT_MINUTES} minutes.")
+                log_to_sheet("ACCOUNT_LOCKED", f"{username} locked after {MAX_LOGIN_ATTEMPTS} failed logins", user=username)
+                exit(1)
+            remaining = MAX_LOGIN_ATTEMPTS - attempts
             if remaining > 0:
                 print(f"❌ Incorrect username or password. {remaining} attempt(s) left.")
             else:
